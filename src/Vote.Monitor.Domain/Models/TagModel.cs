@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
 namespace Vote.Monitor.Domain.Models;
-public  class TagModel
+public class TagModel
 {
-    public  TagModel()
+    public TagModel()
     {
     }
 
@@ -17,6 +17,7 @@ public  class TagModel
 
     public required string Key { get; set; }
     public required string Value { get; set; }
-    
+
     public List<PollingStationModel> PollingStations { get; } = new();
+    public List<PollingStationTag> PollingStationTags { get; } = new();
 }

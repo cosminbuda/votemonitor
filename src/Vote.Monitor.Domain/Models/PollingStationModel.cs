@@ -5,4 +5,5 @@ public class PollingStationModel
     public required string Address { get; set; }
     public int DisplayOrder { get; set; }
     public List<TagModel> Tags { get; set; } = new List<TagModel>();
+    public List<PollingStationTag> PollingStationTags { get; set; } = new List<PollingStationTag>();
 }

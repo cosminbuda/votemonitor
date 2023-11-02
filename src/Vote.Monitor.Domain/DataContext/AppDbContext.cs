@@ -16,13 +16,15 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<PollingStationModel>()
             .HasMany(p => p.Tags)
             .WithMany(t => t.PollingStations)
-            .UsingEntity(
-            "PollingStationTag",
-            l => l.HasOne(typeof(TagModel)).WithMany().HasForeignKey("TagId").HasPrincipalKey(nameof(TagModel.Id)),
-            r => r.HasOne(typeof(PollingStationModel)).WithMany().HasForeignKey("PollingStationId").HasPrincipalKey(nameof(PollingStationModel.Id)),
-            j => j.HasKey("PollingStationId", "TagId"))
+            .UsingEntity<PollingStationTag>(
+            l => l.HasOne<TagModel>().WithMany(e => e.PollingStationTags).HasForeignKey("TagId"),
+            r => r.HasOne<PollingStationModel>().WithMany(e => e.PollingStationTags).HasForeignKey("PollingStationId"),
+            j => j.HasKey("PollingStationId", "TagId")
+            )
             .Navigation(e => e.Tags).AutoInclude();
 
+        modelBuilder.Entity<TagModel>()
+           .HasMany(p => p.PollingStationTags)
+           .WithOne(t => t.Tag).HasForeignKey("TagId");
     }
-
 }

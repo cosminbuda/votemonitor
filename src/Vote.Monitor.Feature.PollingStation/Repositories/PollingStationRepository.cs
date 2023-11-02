@@ -3,6 +3,7 @@ using Vote.Monitor.Core.Exceptions;
 using Vote.Monitor.Domain.DataContext;
 using Vote.Monitor.Domain.Models;
 using EFCore.BulkExtensions;
+using Microsoft.AspNetCore.Mvc.Formatters;
 
 namespace Vote.Monitor.Feature.PollingStation.Repositories;
 internal class PollingStationRepository : IPollingStationRepository
@@ -71,35 +72,34 @@ internal class PollingStationRepository : IPollingStationRepository
         pollingStation.DisplayOrder = entity.DisplayOrder;
         pollingStation.Address = entity.Address;
 
-        pollingStation.Tags.Clear();
+        //delete orphaned tags that are not in the new list of tags
+        var tagsToDelete = pollingStation.Tags.Where(t => !entity.Tags.Any(et => et.Key == t.Key && et.Value == t.Value)).ToList();
+        if (tagsToDelete != null)
+            foreach (var tag in tagsToDelete) pollingStation.Tags.Remove(tag);
+
+        DeleteOrphanedTags(tagsToDelete);
 
         foreach (var tag in entity.Tags)
         {
-            var tagToUpdate = await _context.Tags.FirstOrDefaultAsync(t => t.Key == tag.Key);
+            var tagToUpdate = pollingStation.Tags.FirstOrDefault(t => t.Key == tag.Key && t.Value == tag.Value);
+            if (tagToUpdate != null) continue;
+            var tagToAdd = await _context.Tags.FirstOrDefaultAsync(t => t.Key == tag.Key && t.Value == tag.Value);
 
-
-            if (tagToUpdate == null)
+            if (tagToAdd == null)
             {
-                tagToUpdate = new TagModel
+                tagToAdd = new TagModel
                 {
                     Key = tag.Key,
                     Value = tag.Value
                 };
 
-                _context.Tags.Add(tagToUpdate);
-            }
-            else
-            {
-                tagToUpdate.Value = tag.Value;
+                _context.Tags.Add(tagToAdd);
+
             }
 
-            pollingStation.Tags.Add(tagToUpdate);
+            pollingStation.Tags.Add(tagToAdd);
         }
-
         await _context.SaveChangesAsync();
-
-        await DeleteOrphanedTags();
-
         return pollingStation;
     }
 
@@ -108,17 +108,16 @@ internal class PollingStationRepository : IPollingStationRepository
         var pollingStation = await _context.PollingStations.FirstOrDefaultAsync(ps => ps.Id == id) ??
             throw new NotFoundException<PollingStationModel>($"Polling Station not found for ID: {id}");
 
+        DeleteOrphanedTags(pollingStation.Tags);
         _context.PollingStations.Remove(pollingStation);
-
         await _context.SaveChangesAsync();
-
-        await DeleteOrphanedTags();
     }
 
     public async Task DeleteAllAsync()
     {
-        _context.PollingStations.RemoveRange(_context.PollingStations);
 
+        _context.Tags.RemoveRange(_context.Tags);
+        _context.PollingStations.RemoveRange(_context.PollingStations);
         await _context.SaveChangesAsync();
     }
 
@@ -130,7 +129,8 @@ internal class PollingStationRepository : IPollingStationRepository
         if (filterCriteria == null || filterCriteria.Count == 0) return await GetAllAsync(pageSize, page);
 
         if (pageSize == 0) return _context.PollingStations.AsEnumerable().Where(
-            station => filterCriteria.Count(filter => filterCriteria.All(tag => station.Tags.Any(t => t.Key == tag.Key && t.Value == tag.Value))) == filterCriteria.Count
+            station => filterCriteria.Count(filter => filterCriteria.All
+                (tag => station.Tags.Any(t => t.Key == tag.Key && t.Value == tag.Value))) == filterCriteria.Count
               ).OrderBy(st => st.DisplayOrder);
 
         return _context.PollingStations.AsEnumerable().Where(
@@ -138,7 +138,6 @@ internal class PollingStationRepository : IPollingStationRepository
               ).OrderBy(st => st.DisplayOrder)
             .Skip((page - 1) * pageSize)
             .Take(pageSize);
-
     }
 
     public async Task<int> CountAsync(List<TagModel>? filterCriteria)
@@ -157,17 +156,27 @@ internal class PollingStationRepository : IPollingStationRepository
         return records.Count;
     }
 
-    private async Task DeleteOrphanedTags()
+    private async Task DeleteOrphanedTags(bool savechanges)
     {
-        var orphanedTags = _context.Tags
-            .Where(tag => !tag.PollingStations.Any())
+        var orphanedTags = _context.Tags.Include(t => t.PollingStationTags)
+            .Where(tag => tag.PollingStationTags.Count == 0)
             .ToList();
 
         foreach (var tag in orphanedTags)
             _context.Tags.Remove(tag);
 
-        await _context.SaveChangesAsync();
+        if (savechanges) await _context.SaveChangesAsync();
     }
 
+    private void DeleteOrphanedTags(IEnumerable<TagModel>? tagsToDelete)
+    {
+        if (tagsToDelete == null) return;
+        // return all the from context that have ids that are in tagsToDelete and that have only one polling station
+        foreach (var tag in tagsToDelete)
+        {
+            var orphanedTag = _context.Tags.Include(t => t.PollingStationTags).FirstOrDefault(t => t.Id == tag.Id && t.PollingStationTags.Count == 1);
+            if (orphanedTag != null) _context.Tags.Remove(orphanedTag);
+        }
+    }
 
 }

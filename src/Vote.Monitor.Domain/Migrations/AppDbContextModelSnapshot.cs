@@ -34,7 +34,7 @@ namespace Vote.Monitor.Domain.Migrations
 
                     b.HasIndex("TagId");
 
-                    b.ToTable("PollingStationTag");
+                    b.ToTable("PollingStationTag", (string)null);
                 });
 
             modelBuilder.Entity("Vote.Monitor.Domain.Models.PollingStationModel", b =>
@@ -52,7 +52,7 @@ namespace Vote.Monitor.Domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("PollingStations");
+                    b.ToTable("PollingStations", (string)null);
                 });
 
             modelBuilder.Entity("Vote.Monitor.Domain.Models.TagModel", b =>
@@ -73,7 +73,7 @@ namespace Vote.Monitor.Domain.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tags");
+                    b.ToTable("Tags", (string)null);
                 });
 
             modelBuilder.Entity("PollingStationTag", b =>
