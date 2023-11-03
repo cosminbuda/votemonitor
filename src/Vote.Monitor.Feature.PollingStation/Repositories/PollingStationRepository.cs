@@ -156,18 +156,6 @@ internal class PollingStationRepository : IPollingStationRepository
         return records.Count;
     }
 
-    private async Task DeleteOrphanedTags(bool savechanges)
-    {
-        var orphanedTags = _context.Tags.Include(t => t.PollingStationTags)
-            .Where(tag => tag.PollingStationTags.Count == 0)
-            .ToList();
-
-        foreach (var tag in orphanedTags)
-            _context.Tags.Remove(tag);
-
-        if (savechanges) await _context.SaveChangesAsync();
-    }
-
     private void DeleteOrphanedTags(IEnumerable<TagModel>? tagsToDelete)
     {
         if (tagsToDelete == null) return;

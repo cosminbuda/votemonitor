@@ -71,7 +71,6 @@ public class TagRepositoryGetTests
 
         // Assert
         Assert.True(result.Count() == 3, "should be 3 tags keys");
-        //todo: Assert.True(result.Count() == 10, "Tags collection is not empty");
     }
 
     [Fact]
@@ -80,15 +79,11 @@ public class TagRepositoryGetTests
         // Arrange
         Init(out TagRepository repository);
 
-
-
-
         // Act
         var result = await repository.GetAllTagKeysAsync();
 
         // Assert
         Assert.True(!result.Any(), "should be 0 tags value");
-        //todo: Assert.True(result.Count() == 10, "Tags collection is not empty");
     }
 
     [Fact]
@@ -117,7 +112,6 @@ public class TagRepositoryGetTests
                 new TagModel(){Key = "key1", Value = "value1"},
                 new TagModel(){Key = "key1", Value = "value2"}
                 };
-
 
         // Act
         var result = (await repository.GetTagsAsync(selectKey, null)).ToList();
